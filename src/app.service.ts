@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ShortURLType, UrlPairType } from './types';
+import { UrlPairType } from './types';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { URLs } from './schemas/url.schema';
@@ -10,37 +10,41 @@ import { generate } from 'shortid';
 export class AppService {
   constructor(@InjectModel(URLs.name) private urlModel: Model<URLs>) {}
 
-  getHello(): string {
-    return 'Hello World!';
-  }
-
-  async shorten(urlDto: UrlDto): Promise<ShortURLType> {
-    const longUrl = urlDto.url;
-    const duplicate = await this.getDuplicate({ longUrl });
-
-    if (duplicate) {
-      return { id: duplicate.shortUrl };
+  async getLongUrl(shortUrl: string): Promise<string> {
+    const urlPair = await this.getURL({ shortUrl });
+    if (!urlPair) {
+      throw new Error(`Bad request: the ${shortUrl} doesn't exists`);
     }
 
-    const id = await this.getShortId(longUrl);
-    return { id };
+    return urlPair.longUrl;
   }
 
-  private getDuplicate(url: Partial<UrlPairType>): Promise<UrlPairType> {
+  async shorten(urlDto: UrlDto): Promise<string> {
+    const longUrl = urlDto.url;
+    const duplicate = await this.getURL({ longUrl });
+
+    if (duplicate) {
+      return duplicate.shortUrl;
+    }
+
+    return this.getShortId(longUrl);
+  }
+
+  private getURL(url: Partial<UrlPairType>): Promise<UrlPairType> {
     return this.urlModel.findOne(url);
   }
 
   private async getShortId(longUrl: string): Promise<string> {
     while (true) {
-      const id = generate();
+      const shortUrl = generate();
 
       // check possible collisions
-      const duplicate = await this.getDuplicate({ shortUrl: id });
+      const duplicate = await this.getURL({ shortUrl });
       if (!duplicate) {
-        const urlPair = new this.urlModel({ longUrl, shortUrl: id });
+        const urlPair = new this.urlModel({ longUrl, shortUrl });
         await urlPair.save();
 
-        return id;
+        return shortUrl;
       }
     }
   }
