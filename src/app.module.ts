@@ -13,12 +13,9 @@ const db = process.env.DB_NAME;
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      `mongodb://${username}:${password}@localhost:27017`,
-      {
-        dbName: db,
-      },
-    ),
+    MongooseModule.forRoot(`mongodb://${username}:${password}@mongo:27017`, {
+      dbName: db,
+    }),
     MongooseModule.forFeature([{ name: URLs.name, schema: URLSchema }]),
   ],
   controllers: [AppController],

@@ -1,11 +1,26 @@
 version: '3.1'
 
+networks:
+  backend:
+    attachable: true
 services:
+  app:
+      build:
+        context: ./
+        dockerfile: Dockerfile
+      depends_on:
+        - mongo
+      ports:
+        - 3000:3000
+      networks:
+        - backend
   mongo:
     image: mongo
     restart: always
     ports:
       - 27017:27017
+    networks:
+      - backend
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: test12345
